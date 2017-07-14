@@ -30,7 +30,12 @@ using namespace yarp::sig;
 using namespace yarp::os;
 
 
+typedef struct
+{
+    Mutex *m;
+    ImageOf<PixelRgb> *img;
 
+} data_for_gst_callback;
 //-------------------------------------------------------------------
 //---------------  CALLBACK FUNCTIONS -------------------------------
 //-------------------------------------------------------------------
@@ -129,7 +134,7 @@ static gboolean link_convert2next(GstElement *e1, GstElement *e2)
 
 GstFlowReturn new_sample(GstAppSink *appsink, gpointer user_data)
 {
-    ImageOf<PixelRgb> *new_frame = (ImageOf<PixelRgb>*)user_data;
+    data_for_gst_callback *dec_data = (data_for_gst_callback*)user_data;
 
     GstSample *sample = NULL;
     g_signal_emit_by_name (appsink, "pull-sample", &sample, NULL);
@@ -178,11 +183,12 @@ GstFlowReturn new_sample(GstAppSink *appsink, gpointer user_data)
     //HERE I GET MY IMAGE!!!!
     //DO SOMETHING...
     //ImageOf<PixelRgb> &yframebuff = yarp_stuff_ptr->yport_ptr->prepare();
-    new_frame->resize(width, height);
+    dec_data->m->lock();
+    dec_data->img->resize(width, height);
 
-    unsigned char *ydata_ptr = new_frame->getRawImage();
+    unsigned char *ydata_ptr = dec_data->img->getRawImage();
     memcpy(ydata_ptr, map.data, width*height*3);
-
+    dec_data->m->unlock();
     gst_buffer_unmap(buffer, &map);
 
     gst_sample_unref(sample);
@@ -219,12 +225,20 @@ public:
     GstElement *convert;
     GstElement *decoder;
 
+    data_for_gst_callback gst_cbk_data;
+
     GstBus *bus; //maybe can be moved in function where i use it
     guint bus_watch_id;
 
     ImageOf<PixelRgb> myframe;
 
-    H264DecoderHelper(){;}
+    H264DecoderHelper( Mutex * m_ptr)
+    {
+        gst_cbk_data.m = m_ptr;
+        gst_cbk_data.img = &myframe;
+
+        myframe.resize(2560, 720);
+    }
     ~H264DecoderHelper(){;}
 
     bool istantiateElements(void)
@@ -263,7 +277,7 @@ public:
         cbs.eos = NULL;
         cbs.new_preroll = NULL;
         cbs.new_sample = &new_sample;
-        gst_app_sink_set_callbacks( GST_APP_SINK( sink ), &cbs, &myframe, NULL );
+        gst_app_sink_set_callbacks( GST_APP_SINK( sink ), &cbs, &gst_cbk_data, NULL );
 
   /*      //3) add watch ( a message handler)
         bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
@@ -317,7 +331,7 @@ public:
 
 H264Decoder::H264Decoder()
 {
-    sysResource = new H264DecoderHelper();
+    sysResource = new H264DecoderHelper(&mutex);
     yAssert(sysResource!=NULL);
 
 }

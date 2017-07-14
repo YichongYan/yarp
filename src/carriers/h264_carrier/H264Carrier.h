@@ -22,6 +22,7 @@
 #include <yarp/os/Carrier.h>
 #include <yarp/os/NetType.h>
 #include "H264Stream.h"
+#include "yarp/os/Contact.h"
 
 #include <cstring>
 
@@ -122,7 +123,7 @@ public:
 
     virtual void getHeader(const Bytes& header) override
     {
-       printf("sono dentro la getHeader con size = %d\n", header.length());
+       printf("sono dentro la getHeader con size = %lu\n", header.length());
         /*
         // GET /?action=stream HTTP/1.1
         const char *target = "GET /?ac";
@@ -195,6 +196,7 @@ public:
         //MjpegStream *stream = new MjpegStream(proto.giveStreams(),sender);
         //if (stream==NULL) { return false; }
         //proto.takeStreams(stream);*/
+        printf("sono dentro la respondToHeader\n");
         return true;
     }
 
@@ -205,10 +207,25 @@ public:
             txt = proto.is().readLine();
         } while (txt!="");*/
 
+        // sono il receiver...credo
 
-        H264Stream *stream = new H264Stream(proto.giveStreams(),/*sender*/false,
+        H264Stream *stream = new H264Stream(/*sender*/false,
                                               autoCompression());
         if (stream==NULL) { return false; }
+
+        yarp::os::Contact remote = proto.getStreams().getRemoteAddress();
+        bool ok = stream->open(remote);
+        if (!ok)
+        {
+            delete stream;
+            return false;
+        }
+        stream->start();
+
+        //int myPort = stream->getLocalAddress().getPort();
+        //writeYarpInt(myPort, proto); scrive yarp header
+
+
         proto.takeStreams(stream);
         return true;
     }
