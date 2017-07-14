@@ -115,6 +115,7 @@ InputProtocol *TcpFace::read() {
 OutputProtocol *TcpFace::write(const Contact& address) {
     SocketTwoWayStream *stream  = new SocketTwoWayStream();
     int result = stream->open(address);
+    result =1;
     if (result<0) {
         stream->close();
         delete stream;
