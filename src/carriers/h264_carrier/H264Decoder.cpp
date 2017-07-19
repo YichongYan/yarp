@@ -16,6 +16,7 @@
 */
 
 #include "H264Decoder.h"
+#include <yarp/os/Log.h>
 
 #include <gst/gst.h>
 #include <glib.h>
@@ -24,7 +25,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <yarp/os/Log.h>
 
 using namespace yarp::sig;
 using namespace yarp::os;

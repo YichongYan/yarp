@@ -19,8 +19,8 @@
 #ifndef H264DECODER_INC
 #define H264DECODER_INC
 
-#include <yarp/sig/Image.h>
 #include <yarp/os/Mutex.h>
+#include <yarp/sig/Image.h>
 
 namespace yarp {
     namespace os {
@@ -31,11 +31,10 @@ namespace yarp {
 class yarp::os::H264Decoder
 {
 private:
-
     void *sysResource;
 
 public:
-    yarp::os::Mutex mutex ;
+    yarp::os::Mutex mutex ; //==>create functions to work with it
 
     H264Decoder();
     ~H264Decoder();

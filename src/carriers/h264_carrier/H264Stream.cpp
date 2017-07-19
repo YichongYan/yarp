@@ -1,9 +1,19 @@
-/*
- * Copyright (C) 2010 RobotCub Consortium
- * Authors: Paul Fitzpatrick
- * CopyPolicy: Released under the terms of the LGPLv2.1 or later, see LGPL.TXT
- *
- */
+/* Copyright (C) 2017 iCub Facility - Istituto Italiano di Tecnologia
+* Author: Valentina Gaggero
+* email:   valentina.gaggero@iit.it
+* website: www.robotcub.org
+* Permission is granted to copy, distribute, and/or modify this program
+* under the terms of the GNU General Public License, version 2 or any
+* later version published by the Free Software Foundation.
+*
+* A copy of the license can be found at
+* http://www.robotcub.org/icub/license/gpl.txt
+*
+* This program is distributed in the hope that it will be useful, but
+* WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+* Public License for more details
+*/
 
 
 
@@ -21,23 +31,45 @@ using namespace yarp::sig;
 using namespace std;
 
 
-#if 0
+bool H264Stream::setStream(yarp::os::impl::DgramTwoWayStream *stream)
+{
+    delegate = stream;
+    if(NULL == delegate)
+    {
+        return false;
+    }
+    return true;
+}
+
+void H264Stream::start (void)
+{
+    decoder = new H264Decoder();
+    decoder->init();
+    decoder->start();
+}
+
+InputStream& H264Stream::getInputStream()
+{
+    return *this;
+}
+
+OutputStream& H264Stream::getOutputStream()
+{
+    return *this;
+}
+
+//using yarp::os::OutputStream::write;
+
+
+//using yarp::os::InputStream::read;
+
+bool H264Stream::setReadEnvelopeCallback(InputStream::readEnvelopeCallbackType callback, void* data)
+{
+    return true;
+}
+
 YARP_SSIZE_T H264Stream::read(const Bytes& b)
 {
-    YARP_SSIZE_T size = decoder->getLastFrameSize();
-    decoder->mutex.lock();
-    ImageOf<PixelRgb> & img = decoder->getLastFrame();
-    unsigned char * img_buf = img.getRawImage();
-    int frame_size = decoder->getLastFrameSize();
-   // memcpy(b.get(), decoder->getLastFrame().getRawImage(),  decoder->getLastFrameSize());
-     memcpy(b.get(), img.getRawImage(), frame_size );
-    decoder->mutex.unlock();
-    return size;
-}
-#endif
-
-#if 1
-YARP_SSIZE_T H264Stream::read(const Bytes& b) {
     bool debug = false;
     if (remaining==0)
     {
@@ -56,75 +88,33 @@ YARP_SSIZE_T H264Stream::read(const Bytes& b) {
             phase = 0;
         }
     }
-    while (phase==0 /*&& delegate->getInputStream().isOk()VALE TO CHECK*/) {
-//        ConstString s = "";
-//        do {
-//            s = delegate->getInputStream().readLine();
-//            if (debug) {
-//                printf("Read \"%s\"\n", s.c_str());
-//            }
-//        } while ((s.length()==0||s[0]!='-') && delegate->getInputStream().isOk());
-//        s = delegate->getInputStream().readLine();
-//        if (s!="Content-Type: image/jpeg") {
-//            if (!delegate->getInputStream().isOk()) {
-//                break;
-//            }
-//            printf("Unknown content type - \"%s\"\n", s.c_str());
-//            continue;
-//        }
-//        if (debug) {
-//            printf("Read content type - \"%s\"\n", s.c_str());
-//        }
-//        s = delegate->getInputStream().readLine();
-//        if (debug) {
-//            printf("Read content length - \"%s\"\n", s.c_str());
-//        }
-//        Bottle b(s.c_str());
-//        if (b.get(0).asString()!="Content-Length:") {
-//            if (!delegate->getInputStream().isOk()) {
-//                break;
-//            }
-//            printf("Expected Content-Length: got - \"%s\"\n", b.get(0).asString().c_str());
-//            continue;
-//        }
+    while (phase==0)
+    {
         decoder->mutex.lock();
         ImageOf<PixelRgb> & img_dec = decoder->getLastFrame();
-        //unsigned char * img_buf = img.getRawImage();
         img.copy(img_dec);
-        int len = decoder->getLastFrameSize(); //b.get(1).asInt();
+        int len = decoder->getLastFrameSize();
         decoder->mutex.unlock();
 
         if (debug)
         {
             printf("Length is \"%d\"\n", len);
         }
-//        do {
-//            s = delegate->getInputStream().readLine();
-//            if (debug) {
-//                printf("Read \"%s\"\n", s.c_str());
-//            }
-//        } while (s.length()>0);
-
-//            cimg.allocate(len);
-//            delegate->getInputStream().readFull(cimg.bytes());
-//            if (!decompression.decompress(cimg.bytes(), img)) {
-//                if (delegate->getInputStream().isOk()) {
-//                    yError("Skipping a problematic JPEG frame");
-//                }
-//            }
-            imgHeader.setFromImage(img);
-            phase = 1;
-            cursor = (char*)(&imgHeader);
-            remaining = sizeof(imgHeader);
-
+        imgHeader.setFromImage(img);
+        phase = 1;
+        cursor = (char*)(&imgHeader);
+        remaining = sizeof(imgHeader);
     }
 
-    if (remaining>0) {
+    if (remaining>0)
+    {
         int allow = remaining;
-        if ((int)b.length()<allow) {
+        if ((int)b.length()<allow)
+        {
             allow = b.length();
         }
-        if (cursor!=NULL) {
+        if (cursor!=NULL)
+        {
             memcpy(b.get(),cursor,allow);
             cursor+=allow;
             remaining-=allow;
@@ -146,9 +136,9 @@ YARP_SSIZE_T H264Stream::read(const Bytes& b) {
     return -1;
 }
 
-#endif
 
-void H264Stream::write(const Bytes& b) {
+void H264Stream::write(const Bytes& b)
+{
     delegate->getOutputStream().write(b);
 }
 

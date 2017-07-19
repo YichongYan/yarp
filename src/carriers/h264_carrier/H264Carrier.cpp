@@ -19,25 +19,9 @@
 #include <cstdio>
 
 
-
-extern "C" {
-#include <gst/gst.h>
-#include <glib.h> //????
-}
-
-
-/*
-  work around ends.
- */
-
-
 #include "H264Carrier.h"
-
-#include <yarp/sig/Image.h>
-#include <yarp/sig/ImageNetworkHeader.h>
-#include <yarp/os/Name.h>
-#include <yarp/os/Bytes.h>
-
+#include "H264Stream.h"
+#include "yarp/os/Contact.h"
 
 
 using namespace yarp::os;
@@ -46,87 +30,178 @@ using namespace yarp::sig;
 #define dbg_printf if (0) printf
 
 
+ConstString H264Carrier::getName()
+{
+    return "h264";
+}
+
+bool H264Carrier::isConnectionless()
+{
+    return true;
+}
+
+bool H264Carrier::canAccept()
+{
+    return true;
+}
+
+bool H264Carrier::canOffer()
+{
+    return true;
+}
+
+bool H264Carrier::isTextMode()
+{
+    return false;
+}
+
+bool H264Carrier::canEscape()
+{
+    return false;
+}
+
+void H264Carrier::handleEnvelope(const yarp::os::ConstString& envelope)
+{
+    this->envelope = envelope;
+}
+
+bool H264Carrier::requireAck()
+{
+    return false;
+}
+
+bool H264Carrier::supportReply()
+{
+    return false;
+}
+
+bool H264Carrier::isLocal()
+{
+    return false;
+}
+
+// this is important - flips expected flow of messages
+bool H264Carrier::isPush()
+{
+    return false;
+}
+
+ConstString H264Carrier::toString()
+{
+    return "h264_carrier";
+}
+
+void H264Carrier::getHeader(const Bytes& header)
+{
+   printf("sono dentro la getHeader con size = %lu\n", header.length());
+}
+
+bool H264Carrier::checkHeader(const Bytes& header)
+{
+    printf("sono dentro la checkHeader\n");
+    return true;
+}
+
+void H264Carrier::setParameters(const Bytes& header)
+{
+    // no parameters - no carrier variants
+}
+
+
+// Now, the initial hand-shaking
+
+bool H264Carrier::prepareSend(ConnectionState& proto)
+{
+    // nothing special to do
+    return true;
+}
+
+bool H264Carrier::sendHeader(ConnectionState& proto)
+{
+    return true;
+}
+
+bool H264Carrier::expectSenderSpecifier(ConnectionState& proto)
+{
+    return true;
+}
+
+bool H264Carrier::expectExtraHeader(ConnectionState& proto)
+{
+    return true;
+}
+
+bool H264Carrier::respondToHeader(ConnectionState& proto)
+{
+    printf("sono dentro la respondToHeader\n");
+    return true;
+}
+
+bool H264Carrier::expectReplyToHeader(ConnectionState& proto)
+{
+    // sono il receiver...credo
+
+    H264Stream *stream = new H264Stream(/*sender*/false,
+                                          autoCompression());
+    if (stream==NULL) { return false; }
+
+    yarp::os::Contact remote = proto.getStreams().getRemoteAddress();
+    bool ok = stream->open(remote);
+    if (!ok)
+    {
+        delete stream;
+        return false;
+    }
+    stream->start();
+
+    proto.takeStreams(stream);
+    return true;
+}
+
+bool H264Carrier::isActive()
+{
+    return true;
+}
 
 bool H264Carrier::write(ConnectionState& proto, SizedWriter& writer)
 {
     printf("i'm in h264Carrier:write.... should not be here!! \n");
-    /* WireImage rep;
-    FlexImage *img = rep.checkForImage(writer);
-
-    if (img==NULL) return false;
-    int w = img->width();
-    int h = img->height();
-    int row_stride = img->getRowSize();
-    JOCTET *data = (JOCTET*)img->getRawImage();
-
-    JSAMPROW row_pointer[1];
-
-    struct jpeg_compress_struct cinfo;
-    struct jpeg_error_mgr jerr;
-    cinfo.err = jpeg_std_error(&jerr);
-    cinfo.client_data = &proto;
-    jpeg_create_compress(&cinfo);
-    jpeg_net_dest(&cinfo);
-    cinfo.image_width = w;
-    cinfo.image_height = h;
-    cinfo.input_components = 3;
-    cinfo.in_color_space = JCS_RGB;
-    jpeg_set_defaults(&cinfo);
-    //jpeg_set_quality(&cinfo, 85, TRUE);
-    dbg_printf("Starting to compress...\n");
-    jpeg_start_compress(&cinfo, TRUE);
-    if(!envelope.empty()) {
-        jpeg_write_marker(&cinfo, JPEG_COM, reinterpret_cast<const JOCTET*>(envelope.c_str()), envelope.length() + 1);
-        envelope.clear();
-    }
-    dbg_printf("Done compressing (height %d)\n", cinfo.image_height);
-    while (cinfo.next_scanline < cinfo.image_height) {
-        dbg_printf("Writing row %d...\n", cinfo.next_scanline);
-        row_pointer[0] = data + cinfo.next_scanline * row_stride;
-        jpeg_write_scanlines(&cinfo, row_pointer, 1);
-    }
-    jpeg_finish_compress(&cinfo);
-    jpeg_destroy_compress(&cinfo);
-*/
     return true;
 }
 
-bool H264Carrier::reply(ConnectionState& proto, SizedWriter& writer) {
-    return false;
-}
-
-
-bool H264Carrier::sendHeader(ConnectionState& proto)
+bool H264Carrier::reply(ConnectionState& proto, SizedWriter& writer)
 {
-/*    Name n(proto.getRoute().getCarrierName() + "://test");
-    ConstString pathValue = n.getCarrierModifier("path");
-    ConstString target = "GET /?action=stream\n\n";
-    if (pathValue!="") {
-        target = "GET /";
-        target += pathValue;
-    }
-    target += " HTTP/1.1\n";
-    Contact host = proto.getRoute().getToContact();
-    if (host.getHost()!="") {
-        target += "Host: ";
-        target += host.getHost();
-        target += "\r\n";
-    }
-    target += "\n";
-    Bytes b((char*)target.c_str(),target.length());
-    proto.os().write(b);
-  */
-  return true;
+    return false;
 }
 
 bool H264Carrier::autoCompression() const
 {
     return true;
-
-    /*#ifdef MJPEG_AUTOCOMPRESS
-    return true;
-    #else
-        return false;
-    #endif*/
 }
+
+bool H264Carrier::sendIndex(ConnectionState& proto, SizedWriter& writer)
+{
+    return true;
+}
+
+bool H264Carrier::expectIndex(ConnectionState& proto)
+{
+    return true;
+}
+
+bool H264Carrier::sendAck(ConnectionState& proto)
+{
+    return true;
+}
+
+bool H264Carrier::expectAck(ConnectionState& proto)
+{
+    return true;
+}
+
+ConstString H264Carrier::getBootstrapCarrierName()
+{
+    return "";
+}
+
 
