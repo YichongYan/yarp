@@ -26,6 +26,14 @@
 
 #include "H264Stream.h"
 
+#define debug_time 1
+
+#ifdef debug_time
+    #include <yarp/os/Time.h>
+    #define DBG_TIME_PERIOD_PRINTS 10 //10 sec
+#endif
+
+
 using namespace yarp::os;
 using namespace yarp::sig;
 using namespace std;
@@ -70,6 +78,27 @@ bool H264Stream::setReadEnvelopeCallback(InputStream::readEnvelopeCallbackType c
 
 YARP_SSIZE_T H264Stream::read(const Bytes& b)
 {
+
+#ifdef debug_time
+    static bool isFirst = true;
+    double start_time = Time::now();
+    double end_time=0;
+
+    static double last_call;
+    static double sumOf_timeBetweenCalls = 0;
+    static double sumOf_timeOfNewSampleFunc = 0;
+    static uint32_t count=0;
+    #define MAX_COUNT  100
+
+
+    if(!isFirst)
+        sumOf_timeBetweenCalls+=(start_time -last_call);
+
+    last_call = start_time;
+
+
+#endif
+
     bool debug = false;
     if (remaining==0)
     {
@@ -91,10 +120,23 @@ YARP_SSIZE_T H264Stream::read(const Bytes& b)
     while (phase==0)
     {
         decoder->mutex.lock();
-        ImageOf<PixelRgb> & img_dec = decoder->getLastFrame();
-        img.copy(img_dec);
-        int len = decoder->getLastFrameSize();
-        decoder->mutex.unlock();
+        int len = 0;
+        if(decoder->newFrameIsAvailable())
+        {
+            ImageOf<PixelRgb> & img_dec = decoder->getLastFrame();
+            img.copy(img_dec);
+            len = decoder->getLastFrameSize();
+            decoder->mutex.unlock();
+        }
+        else
+        {
+            phase = 0;
+            remaining = 0;
+            cursor = NULL;
+            decoder->mutex.unlock();
+            return 0;
+        }
+
 
         if (debug)
         {
@@ -119,6 +161,24 @@ YARP_SSIZE_T H264Stream::read(const Bytes& b)
             cursor+=allow;
             remaining-=allow;
             if (debug) printf("returning %d bytes\n", allow);
+            #ifdef debug_time
+                end_time = Time::now();
+                sumOf_timeOfNewSampleFunc += (end_time-start_time);
+                count++;
+                isFirst=false;
+
+                if(count>=MAX_COUNT)
+                {
+                    printf("STREAM On %d times: NewSampleFunc is long %.6f sec and sleeps %.6f sec\n",
+                            MAX_COUNT, (sumOf_timeOfNewSampleFunc/MAX_COUNT), (sumOf_timeBetweenCalls/MAX_COUNT) );
+                    count = 0;
+                    isFirst = true;
+                    sumOf_timeBetweenCalls = 0;
+                    sumOf_timeOfNewSampleFunc = 0;
+                }
+
+
+            #endif
             return allow;
         } else
         {

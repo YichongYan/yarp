@@ -18,6 +18,7 @@
 #include "H264Decoder.h"
 #include <yarp/os/Log.h>
 
+
 #include <gst/gst.h>
 #include <glib.h>
 
@@ -25,6 +26,12 @@
 #include <stdio.h>
 #include <string.h>
 
+#define debug_time 1
+
+#ifdef debug_time
+    #include <yarp/os/Time.h>
+    #define DBG_TIME_PERIOD_PRINTS 10 //10 sec
+#endif
 
 using namespace yarp::sig;
 using namespace yarp::os;
@@ -34,6 +41,7 @@ typedef struct
 {
     Mutex *m;
     ImageOf<PixelRgb> *img;
+    bool isNew;
 
 } data_for_gst_callback;
 //-------------------------------------------------------------------
@@ -134,6 +142,26 @@ static gboolean link_convert2next(GstElement *e1, GstElement *e2)
 
 GstFlowReturn new_sample(GstAppSink *appsink, gpointer user_data)
 {
+#ifdef debug_time
+    static bool isFirst = true;
+    double start_time = Time::now();
+    double end_time=0;
+
+    static double last_call;
+    static double sumOf_timeBetweenCalls = 0;
+    static double sumOf_timeOfNewSampleFunc = 0;
+    static uint32_t count=0;
+    #define MAX_COUNT  100
+
+
+    if(!isFirst)
+        sumOf_timeBetweenCalls+=(start_time -last_call);
+
+    last_call = start_time;
+
+
+#endif
+
     data_for_gst_callback *dec_data = (data_for_gst_callback*)user_data;
 
     GstSample *sample = NULL;
@@ -184,6 +212,7 @@ GstFlowReturn new_sample(GstAppSink *appsink, gpointer user_data)
     //DO SOMETHING...
     //ImageOf<PixelRgb> &yframebuff = yarp_stuff_ptr->yport_ptr->prepare();
     dec_data->m->lock();
+    dec_data->isNew = true;
     dec_data->img->resize(width, height);
 
     unsigned char *ydata_ptr = dec_data->img->getRawImage();
@@ -192,6 +221,27 @@ GstFlowReturn new_sample(GstAppSink *appsink, gpointer user_data)
     gst_buffer_unmap(buffer, &map);
 
     gst_sample_unref(sample);
+
+
+#ifdef debug_time
+    end_time = Time::now();
+    sumOf_timeOfNewSampleFunc += (end_time-start_time);
+    count++;
+    isFirst=false;
+
+    if(count>=MAX_COUNT)
+    {
+        g_print("On %d times: NewSampleFunc is long %.6f sec and sleeps %.6f sec\n",
+                MAX_COUNT, (sumOf_timeOfNewSampleFunc/MAX_COUNT), (sumOf_timeBetweenCalls/MAX_COUNT) );
+        count = 0;
+        isFirst = true;
+        sumOf_timeBetweenCalls = 0;
+        sumOf_timeOfNewSampleFunc = 0;
+    }
+
+
+#endif
+
 
     return GST_FLOW_OK;
 
@@ -236,8 +286,6 @@ public:
     {
         gst_cbk_data.m = m_ptr;
         gst_cbk_data.img = &myframe;
-
-        myframe.resize(2560, 720);
     }
     ~H264DecoderHelper(){;}
 
@@ -392,7 +440,14 @@ H264Decoder::~H264Decoder()
 ImageOf<PixelRgb> & H264Decoder::getLastFrame(void)
 {
     H264DecoderHelper &helper = GET_HELPER(sysResource);
+    helper.gst_cbk_data.isNew = false;
     return helper.myframe;
+}
+
+bool H264Decoder::newFrameIsAvailable(void)
+{
+    H264DecoderHelper &helper = GET_HELPER(sysResource);
+    return helper.gst_cbk_data.isNew;
 }
 
 int H264Decoder::getLastFrameSize(void)

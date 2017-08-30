@@ -43,6 +43,7 @@ public:
     bool stop();
     yarp::sig::ImageOf<yarp::sig::PixelRgb> & getLastFrame(void);
     int getLastFrameSize(void);
+    bool newFrameIsAvailable(void);
 };
 
 #endif
