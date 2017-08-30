@@ -520,6 +520,14 @@ public:
         YARP_UNUSED(params);
     }
 
+    /**
+     * Get Face usedin the carrier
+     *
+     */
+    virtual ConstString getFace(void)
+    {
+        return "tcpFace";
+    }
 };
 
 #endif // YARP_OS_CARRIER_H

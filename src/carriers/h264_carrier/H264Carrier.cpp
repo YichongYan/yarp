@@ -204,4 +204,9 @@ ConstString H264Carrier::getBootstrapCarrierName()
     return "";
 }
 
+ConstString getFace()
+{
+        return "fakeFace";
+}
+
 
