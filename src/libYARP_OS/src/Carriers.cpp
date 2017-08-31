@@ -257,17 +257,26 @@ Carrier *Carriers::chooseCarrier(const Bytes& bytes)
 
 Face *Carriers::listen(const Contact& address)
 {
-    // for now, only TcpFace exists - otherwise would need to manage
-    // multiple possibilities
     Face *face = nullptr;
-    if (address.getCarrier() == "fake") {
+    if (address.getCarrier() == "fake")//for backward compatibility
+    {
         face = new FakeFace();
     }
-    if (face == nullptr) {
-        face = new TcpFace();
+
+    Carrier  *c = getCarrierTemplate(address.getCarrier());
+    if(c != nullptr)
+    {
+        face = c->createFace();
     }
+    else
+    {
+        //if address hasn't carrier than use the default one (tcpFace)
+         face = new TcpFace();
+    }
+
     bool ok = face->open(address);
-    if (!ok) {
+    if (!ok)
+    {
         delete face;
         face = nullptr;
     }
@@ -277,22 +286,21 @@ Face *Carriers::listen(const Contact& address)
 
 OutputProtocol *Carriers::connect(const Contact& address)
 {
-    TcpFace tcpFace;
-    FakeFace fakeface;
+    yarp::os::Face * face = nullptr;
     Carrier  *c = getCarrierTemplate(address.getCarrier());
     if(c != nullptr)
     {
-        yarp::os::Face * face = c->createFace();
-        OutputProtocol *proto = face->write(address);
-        delete face;
-        return proto;
+        face = c->createFace();
     }
     else
     {
         //if address hasn't carrier than use the default one (tcpFace)
-         return tcpFace.write(address);
+         face = new TcpFace();
     }
 
+    OutputProtocol *proto = face->write(address);
+    delete face;
+    return proto;
 }
 
 
