@@ -20,6 +20,7 @@
 #define H264CARRIER_INC
 
 #include <yarp/os/Carrier.h>
+#include <yarp/os/Face.h>
 
 
 namespace yarp {
@@ -116,6 +117,8 @@ public:
     virtual ConstString getBootstrapCarrierName() override;
 
     virtual bool autoCompression() const;
+
+    virtual yarp::os::Face* createFace(void) override;
 };
 
 #endif

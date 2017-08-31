@@ -15,6 +15,8 @@
 #include <yarp/os/ConnectionReader.h>
 #include <yarp/os/Connection.h>
 #include <yarp/os/ConnectionState.h>
+#include <yarp/os/Face.h>
+#include <yarp/os/impl/TcpFace.h> // to move in cpp file
 
 #define YARP_ENACT_CONNECT 1
 #define YARP_ENACT_DISCONNECT 2
@@ -521,12 +523,12 @@ public:
     }
 
     /**
-     * Get Face usedin the carrier
+     * Create new Face object that the carrier needs.
      *
      */
-    virtual ConstString getFace(void)
+    virtual yarp::os::Face* createFace(void)
     {
-        return "tcpFace";
+        return new yarp::os::impl::TcpFace();
     }
 };
 

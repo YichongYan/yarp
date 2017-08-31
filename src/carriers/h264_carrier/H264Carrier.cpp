@@ -22,6 +22,7 @@
 #include "H264Carrier.h"
 #include "H264Stream.h"
 #include "yarp/os/Contact.h"
+#include "yarp/os/impl/FakeFace.h"
 
 
 using namespace yarp::os;
@@ -204,9 +205,8 @@ ConstString H264Carrier::getBootstrapCarrierName()
     return "";
 }
 
-ConstString getFace()
+yarp::os::Face* H264Carrier::createFace(void)
 {
-        return "fakeFace";
+    return new yarp::os::impl::FakeFace();
 }
-
 

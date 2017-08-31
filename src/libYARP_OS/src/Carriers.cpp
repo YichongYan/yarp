@@ -280,22 +280,16 @@ OutputProtocol *Carriers::connect(const Contact& address)
     TcpFace tcpFace;
     FakeFace fakeface;
     Carrier  *c = getCarrierTemplate(address.getCarrier());
-//    //if(address.getCarrier() == "h264")
-//    if(c != nullptr && c->isConnectionless())
-//        return fakeface.write(address);
-//    else
-//        return tcpFace.write(address);
     if(c != nullptr)
     {
-     if(c->getFace() == "tcpFace")
-         return tcpFace.write(address);
-     else  if(c->getFace() == "fakeFace")
-         return fakeface.write(address);
-     else
-         return tcpFace.write(address);
+        yarp::os::Face * face = c->createFace();
+        OutputProtocol *proto = face->write(address);
+        delete face;
+        return proto;
     }
     else
     {
+        //if address hasn't carrier than use the default one (tcpFace)
          return tcpFace.write(address);
     }
 
