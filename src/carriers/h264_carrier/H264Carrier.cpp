@@ -94,12 +94,10 @@ ConstString H264Carrier::toString()
 
 void H264Carrier::getHeader(const Bytes& header)
 {
-   printf("sono dentro la getHeader con size = %lu\n", header.length());
 }
 
 bool H264Carrier::checkHeader(const Bytes& header)
 {
-    printf("sono dentro la checkHeader\n");
     return true;
 }
 
@@ -134,7 +132,6 @@ bool H264Carrier::expectExtraHeader(ConnectionState& proto)
 
 bool H264Carrier::respondToHeader(ConnectionState& proto)
 {
-    printf("sono dentro la respondToHeader\n");
     return true;
 }
 

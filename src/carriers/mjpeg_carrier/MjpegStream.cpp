@@ -23,7 +23,6 @@ using namespace std;
 YARP_SSIZE_T MjpegStream::read(const Bytes& b) {
 
     bool debug = false;
-    printf("-------------------sono dentro la MjpegStream!! \n");
     if (remaining==0) {
         if (phase==1) {
             phase = 2;

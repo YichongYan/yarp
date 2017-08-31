@@ -26,7 +26,7 @@
 
 #include "H264Stream.h"
 
-#define debug_time 1
+#define debug_time 0
 
 #ifdef debug_time
     #include <yarp/os/Time.h>
