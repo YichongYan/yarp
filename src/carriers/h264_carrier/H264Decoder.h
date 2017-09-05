@@ -21,6 +21,7 @@
 
 #include <yarp/os/Mutex.h>
 #include <yarp/sig/Image.h>
+#include <yarp/os/Semaphore.h>
 
 namespace yarp {
     namespace os {
@@ -35,6 +36,7 @@ private:
 
 public:
     yarp::os::Mutex mutex ; //==>create functions to work with it
+    yarp::os::Semaphore semaphore;
 
     H264Decoder();
     ~H264Decoder();
@@ -44,6 +46,7 @@ public:
     yarp::sig::ImageOf<yarp::sig::PixelRgb> & getLastFrame(void);
     int getLastFrameSize(void);
     bool newFrameIsAvailable(void);
+    void setReq(void);
 };
 
 #endif

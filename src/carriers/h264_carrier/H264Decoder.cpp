@@ -42,6 +42,8 @@ typedef struct
     Mutex *m;
     ImageOf<PixelRgb> *img;
     bool isNew;
+    Semaphore *s;
+    bool isReq;
 
 } data_for_gst_callback;
 //-------------------------------------------------------------------
@@ -217,10 +219,13 @@ GstFlowReturn new_sample(GstAppSink *appsink, gpointer user_data)
 
     unsigned char *ydata_ptr = dec_data->img->getRawImage();
     memcpy(ydata_ptr, map.data, width*height*3);
+
     dec_data->m->unlock();
     gst_buffer_unmap(buffer, &map);
 
     gst_sample_unref(sample);
+    if(dec_data->isReq)
+        dec_data->s->post();
 
 
 #ifdef debug_time
@@ -282,10 +287,11 @@ public:
 
     ImageOf<PixelRgb> myframe;
 
-    H264DecoderHelper( Mutex * m_ptr)
+    H264DecoderHelper( Mutex * m_ptr, Semaphore *s_ptr)
     {
         gst_cbk_data.m = m_ptr;
         gst_cbk_data.img = &myframe;
+        gst_cbk_data.s = s_ptr;
     }
     ~H264DecoderHelper(){;}
 
@@ -379,7 +385,7 @@ public:
 
 H264Decoder::H264Decoder()
 {
-    sysResource = new H264DecoderHelper(&mutex);
+    sysResource = new H264DecoderHelper(&mutex, &semaphore);
     yAssert(sysResource!=NULL);
 
 }
@@ -441,6 +447,7 @@ ImageOf<PixelRgb> & H264Decoder::getLastFrame(void)
 {
     H264DecoderHelper &helper = GET_HELPER(sysResource);
     helper.gst_cbk_data.isNew = false;
+    helper.gst_cbk_data.isReq = false;
     return helper.myframe;
 }
 
@@ -454,4 +461,11 @@ int H264Decoder::getLastFrameSize(void)
 {
     H264DecoderHelper &helper = GET_HELPER(sysResource);
     return (helper.myframe.width() * helper.myframe.height() * 3);
+}
+
+void H264Decoder::setReq(void)
+{
+    H264DecoderHelper &helper = GET_HELPER(sysResource);
+    helper.gst_cbk_data.isReq = true;
+
 }
