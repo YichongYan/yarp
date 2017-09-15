@@ -116,8 +116,6 @@ public:
 
     virtual ConstString getBootstrapCarrierName() override;
 
-    virtual bool autoCompression() const;
-
     virtual yarp::os::Face* createFace(void) override;
 };
 

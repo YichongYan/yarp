@@ -32,13 +32,14 @@ namespace yarp {
 class yarp::os::H264Decoder
 {
 private:
+    int remotePort;
     void *sysResource;
 
 public:
     yarp::os::Mutex mutex ; //==>create functions to work with it
     yarp::os::Semaphore semaphore;
 
-    H264Decoder();
+    H264Decoder(int remotePort);
     ~H264Decoder();
     bool init(void);
     bool start();

@@ -28,7 +28,6 @@
 using namespace yarp::os;
 using namespace yarp::sig;
 
-#define dbg_printf if (0) printf
 
 
 ConstString H264Carrier::getName()
@@ -137,14 +136,15 @@ bool H264Carrier::respondToHeader(ConnectionState& proto)
 
 bool H264Carrier::expectReplyToHeader(ConnectionState& proto)
 {
-    // sono il receiver...credo
+    // I'm the receiver...
 
-    H264Stream *stream = new H264Stream(/*sender*/false,
-                                          autoCompression());
+    H264Stream *stream = new H264Stream(proto.getRoute().getToContact().getPort());
     if (stream==NULL) { return false; }
 
     yarp::os::Contact remote = proto.getStreams().getRemoteAddress();
     bool ok = stream->open(remote);
+
+    //std::cout << "Remote contact info: host=" << proto.getRoute().getToContact().getHost() << " port= " << proto.getRoute().getToContact().getPort() <<std::endl;
     if (!ok)
     {
         delete stream;
@@ -170,11 +170,6 @@ bool H264Carrier::write(ConnectionState& proto, SizedWriter& writer)
 bool H264Carrier::reply(ConnectionState& proto, SizedWriter& writer)
 {
     return false;
-}
-
-bool H264Carrier::autoCompression() const
-{
-    return true;
 }
 
 bool H264Carrier::sendIndex(ConnectionState& proto, SizedWriter& writer)

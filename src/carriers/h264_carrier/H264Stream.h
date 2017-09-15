@@ -44,15 +44,23 @@ private:
     char *cursor;
     int remaining;
     H264Decoder *decoder;
+    int remotePort;
 public:
-    H264Stream( bool sender, bool autocompress) :
+    H264Stream( int remotePort) :
             phase(0),
             cursor(NULL),
-            remaining(0)
+            remaining(0),
+            remotePort(remotePort)
     {;}
 
     virtual ~H264Stream()
     {
+        if (decoder!=NULL)
+        {
+            delete decoder;
+            decoder = NULL;
+        }
+
         if (delegate!=NULL)
         {
             delete delegate;

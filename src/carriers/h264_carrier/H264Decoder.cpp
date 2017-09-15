@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define debug_time 1
+//#define debug_time 1
 
 #ifdef debug_time
     #include <yarp/os/Time.h>
@@ -80,7 +80,10 @@ static GstBusSyncReply bus_call (GstBus *bus, GstMessage *msg, gpointer data)
             break;
         }
         default:
-        break;
+        {
+            printf("GSTREAMER: I received message of type %d\n", GST_MESSAGE_TYPE (msg));
+            break;
+        }
     }
 
   return GST_BUS_PASS;
@@ -383,8 +386,9 @@ public:
 
 #define GET_HELPER(x) (*((H264DecoderHelper*)(x)))
 
-H264Decoder::H264Decoder()
+H264Decoder::H264Decoder(int remotePort)
 {
+    this->remotePort = remotePort;
     sysResource = new H264DecoderHelper(&mutex, &semaphore);
     yAssert(sysResource!=NULL);
 
@@ -399,7 +403,7 @@ bool H264Decoder::init(void)
         return false;
     }
 
-    if(!helper.configureElements(3111))
+    if(!helper.configureElements(remotePort))
     {
         printf("Error in configureElements\n");
         return false;

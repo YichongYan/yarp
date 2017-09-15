@@ -26,7 +26,7 @@
 
 #include "H264Stream.h"
 
-#define debug_time 1
+//#define debug_time 1
 
 #ifdef debug_time
     #include <yarp/os/Time.h>
@@ -51,7 +51,7 @@ bool H264Stream::setStream(yarp::os::impl::DgramTwoWayStream *stream)
 
 void H264Stream::start (void)
 {
-    decoder = new H264Decoder();
+    decoder = new H264Decoder(this->remotePort);
     decoder->init();
     decoder->start();
 }
